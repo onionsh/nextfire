@@ -53,7 +53,9 @@ function PostManager() {
 }
 
 function PostForm({ defaultValues, postRef, preview }) {
-    const { register, handleSubmit, reset, watch } = useForm({ defaultValues, mode: 'onChange' });
+    const { register, handleSubmit, reset, watch, formState, formState: { errors } } = useForm({ defaultValues, mode: 'onChange' });
+
+    const { isValid, isDirty } = formState;
 
     const updatePost = async ({ content, published }) => {
         await postRef.update({
@@ -77,17 +79,43 @@ function PostForm({ defaultValues, postRef, preview }) {
 
             <div className={preview ? styles.hidden : styles.controls}>
 
-                <textarea name="content" ref={register}></textarea>
+                <textarea {...register('content', {
+                    maxLength: { value: 20000, message: 'content is too long' },
+                    minLength: { value: 10, message: 'content is too short' },
+                    required: { value: true, message: 'content is required' }
+                })}>
+                </textarea>
+
+                {errors.content && <p className="text-danger">{errors.content.message}</p>}
 
                 <fieldset>
-                    <input className={styles.checkbox} name="published" type="checkbox" ref={register} />
+                    <input className={styles.checkbox} name="published" type="checkbox" {...register} />
                     <label>Published</label>
                 </fieldset>
 
-                <button type="submit" className="btn-green">
+                <button type="submit" className="btn-green" disabled={!isDirty || !isValid}>
                     Save Changes
                 </button>
             </div>
         </form>
+    );
+}
+
+function DeletePostButton({ postRef }) {
+    const router = useRouter();
+
+    const deletePost = async () => {
+        const doIt = confirm('are you sure!');
+        if (doIt) {
+            await postRef.delete();
+            router.push('/admin');
+            toast('post annihilated ', { icon: '🗑️' });
+        }
+    };
+
+    return (
+        <button className="btn-red" onClick={deletePost}>
+            Delete
+        </button>
     );
 }
